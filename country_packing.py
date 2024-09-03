@@ -44,20 +44,6 @@ def get_polygon(database, country):
     except Exception as e:
         raise e
 
-# Define a function to rotate a polygon
-# def rotate_polygon(polygon, angle, center):
-#     """Rotate a polygon while keeping its center."""
-#     angle_rad = math.radians(angle)  # Convert angle to radians
-#     rotated_polygon = []
-#     for x, y in polygon:
-#         ic(center)
-#         temp_x = x - center[0]
-#         temp_y = y - center[1]
-#         rotated_x = temp_x * math.cos(angle_rad) - temp_y * math.sin(angle_rad)
-#         rotated_y = temp_x * math.sin(angle_rad) + temp_y * math.cos(angle_rad)
-#         rotated_polygon.append((rotated_x + center[0], rotated_y + center[1]))
-#     return rotated_polygon
-
 
 def rotate_polygon(coords, theta, centroid, pos):
     # convert degrees to radians
@@ -84,26 +70,25 @@ pygame.display.set_caption("Country_packing")
 polygons = pkl.load(open('./assets/polygons.pkl', 'rb'))
 
 big_country_ = get_polygon(polygons, "Algeria")
-small_country_ = get_polygon(polygons, "Uganda")
-
-ic(big_country_[1], small_country_[1])
-
-ic(big_country_[0], small_country_[0])
+small_countries = [get_polygon(polygons, "Uganda"),
+                   get_polygon(polygons, "Egypt")]
+#ic(small_countries)
 
 # Set initial positions for the shapes
 big_country_pos = [450, 300]  # Starting position of the rectangle
-small_country_pos = [450, 300]   # Starting position of the triangle
-
+small_country_pos = [[450, 300], [450,300]]   # Starting position of the triangle
+#small_countr_2_pos = [600, 400]
 # Define a clock to manage the frame rate
 clock = pygame.time.Clock()
 
 # Initialize rotation angle
-rotation_angle = 0
+rotation_angle = [0, 0]
 
 # Main loop
 running = True
 dragging = False
 
+active = 0
 
 while running:
     for event in pygame.event.get():
@@ -113,10 +98,16 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = event.pos
             # Check if the mouse is clicking inside the triangle
-            if small_country_rect.collidepoint(mouse_x, mouse_y):
+            if small_countries_rect[0].collidepoint(mouse_x, mouse_y):
                 dragging = True
-                mouse_offset_x = small_country_rect.x - mouse_x
-                mouse_offset_y = small_country_rect.y - mouse_y
+                mouse_offset_x = small_countries_rect[0].x - mouse_x
+                mouse_offset_y = small_countries_rect[0].y - mouse_y
+                active = 0
+            elif small_countries_rect[1].collidepoint(mouse_x, mouse_y):
+                dragging = True
+                mouse_offset_x = small_countries_rect[1].x - mouse_x
+                mouse_offset_y = small_countries_rect[1].y - mouse_y
+                active = 1
 
         elif event.type == pygame.MOUSEBUTTONUP:
             dragging = False
@@ -124,35 +115,46 @@ while running:
         elif event.type == pygame.MOUSEMOTION:
             if dragging:
                 mouse_x, mouse_y = event.pos
-                small_country_pos[0] = mouse_x + mouse_offset_x - 450
-                small_country_pos[1] = mouse_y + mouse_offset_y - 300
+                small_country_pos[active][0] = mouse_x + mouse_offset_x - 450
+                small_country_pos[active][1] = mouse_y + mouse_offset_y - 300
+
 
         elif event.type == pygame.MOUSEWHEEL:
-            rotation_angle += 5  # Adjust rotation speed as needed
+            rotation_angle[active] += 5  # Adjust rotation speed as needed
 
     # Clear the screen with a white background
     window.fill((255, 255, 255))
 
     # Rotate the triangle
-    rotated_small_country = rotate_polygon(small_country_[0],
-                                           rotation_angle,
-                                           small_country_[1],
-                                           small_country_pos)
-    #ic(rotated_small_country)
+    rotated_small_country = rotate_polygon(small_countries[0][0],
+                                           rotation_angle[0],
+                                           small_countries[0][1],
+                                           small_country_pos[0])
+    rotated_small_country_2 = rotate_polygon(small_countries[1][0],
+                                           rotation_angle[1],
+                                           small_countries[1][1],
+                                           small_country_pos[1])
+    ic(rotated_small_country)
     # Draw the rectangle and the rotated triangle
     pygame.draw.polygon(window, (0, 0, 255), big_country_[0])  # Blue rectangle
     pygame.draw.polygon(window, (255, 0, 0), rotated_small_country)  # Red triangle
+    pygame.draw.polygon(window, (255, 0, 0), rotated_small_country_2)  # Red triangle
 
-    overlap = np.round(Polygon(big_country_[0]).intersection(Polygon(rotated_small_country)).area/Polygon(rotated_small_country).area*100, 1)
+    overlap_1 = np.round(Polygon(big_country_[0]).intersection(Polygon(rotated_small_country)).area/Polygon(rotated_small_country).area*100, 1)
+    overlap_2 = np.round(Polygon(big_country_[0]).intersection(Polygon(rotated_small_country_2)).area/Polygon(rotated_small_country_2).area*100, 1)
     text_surface = font.render(f"{overlap}%",
                                True, (0,0,0))
     text_rect = text_surface.get_rect()
     text_rect.topright = (800, 100)
     window.blit(text_surface, text_rect)
     # Update the triangle's rect for collision detection
-    small_country_rect = pygame.draw.polygon(window,
+    small_countries_rect = []
+    small_countries_rect.append(pygame.draw.polygon(window,
                                              (255, 0, 0),
-                                             rotated_small_country, 1)
+                                             rotated_small_country, 1))
+    small_countries_rect.append(pygame.draw.polygon(window,
+                                                  (255, 0, 0),
+                                                  rotated_small_country_2, 1))
 
     # Update the display
     pygame.display.flip()
