@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import pygame
 from shapely import MultiPolygon, Polygon
 import pickle as pkl
@@ -39,10 +41,6 @@ def get_polygon(database, country):
         if isinstance(scaled_polygon, MultiPolygon):
 
             tmp = np.array([i.area for i in scaled_polygon.geoms])
-            # norm_area = tmp/np.max(tmp)
-
-            # for inx, geom in enumerate(scaled_polygon.geoms):
-                # if norm_area[inx] > 0.05:
 
             geom = scaled_polygon.geoms[np.argmax(tmp)]
             x, y = geom.exterior.xy
